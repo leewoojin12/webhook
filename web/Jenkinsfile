@@ -5,22 +5,18 @@ pipeline {
             args '-v $HOME/.kube:/root/.kube'
         }
     }
-
     environment {
-        HELM_HOME = "${WORKSPACE}/.helm"
         NAMESPACE = 'db-replication'
         RELEASE   = 'mysql-replica'
         CHART     = 'bitnami/mysql'
     }
-
     stages {
         stage('Checkout') {
             steps { checkout scm }
         }
-
         stage('Create Namespace') {
             steps {
-                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
                     sh '''
                       echo "$KUBECONFIG" > kubeconfig
                       export KUBECONFIG=$(pwd)/kubeconfig
@@ -29,10 +25,9 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy MySQL Master‑Slave') {
+        stage('Deploy') {
             steps {
-                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
                     sh '''
                       echo "$KUBECONFIG" > kubeconfig
                       export KUBECONFIG=$(pwd)/kubeconfig
@@ -42,10 +37,9 @@ pipeline {
                 }
             }
         }
-
         stage('Verify') {
             steps {
-                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
                     sh '''
                       echo "$KUBECONFIG" > kubeconfig
                       export KUBECONFIG=$(pwd)/kubeconfig
