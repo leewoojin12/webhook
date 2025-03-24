@@ -1,0 +1,27 @@
+primary:
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+replica:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+auth:
+  rootPassword: secureRootPass123
+  database: appdb
+  username: appuser
+  password: secureAppPass123
+
+metrics:
+  enabled: true
