@@ -2,32 +2,25 @@ pipeline {
     agent {
         docker {
             image 'lachlanevenson/k8s-helm:latest'
-            args '-v $WORKSPACE/kubeconfig:/root/.kube/config'
         }
     }
-
     environment {
         NAMESPACE = 'db-replication'
         RELEASE   = 'mysql-replica'
         CHART     = 'bitnami/mysql'
     }
-
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
-
         stage('Create Namespace') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
                     writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
-                    sh 'kubectl apply -f k8s/namespace.yaml'
+                    sh 'kubectl --kubeconfig=kubeconfig apply -f k8s/namespace.yaml'
                 }
             }
         }
-
         stage('Deploy') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
@@ -37,12 +30,11 @@ pipeline {
                 }
             }
         }
-
         stage('Verify') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
                     writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
-                    sh "kubectl -n ${NAMESPACE} get pods,svc"
+                    sh "kubectl --kubeconfig=kubeconfig -n ${NAMESPACE} get pods,svc"
                 }
             }
         }
