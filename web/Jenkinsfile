@@ -1,32 +1,46 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'lachlanevenson/k8s-helm:latest'
+            args '-v $HOME/.kube:/root/.kube'
+        }
+    }
 
     environment {
         KUBE_CONFIG = credentials('DOCKER_HUB')
-        HELM_HOME = "${WORKSPACE}/.helm"
-        NAMESPACE = 'db-replication'
-        RELEASE = 'mysql-replica'
-        CHART = 'bitnami/mysql'
+        HELM_HOME   = "${WORKSPACE}/.helm"
+        NAMESPACE   = 'db-replication'
+        RELEASE     = 'mysql-replica'
+        CHART       = 'bitnami/mysql'
     }
 
     stages {
         stage('Checkout') {
             steps { checkout scm }
         }
+
         stage('Create Namespace') {
             steps {
-                sh "kubectl --kubeconfig=${KUBE_CONFIG} apply -f k8s/namespace.yaml"
+                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl apply -f k8s/namespace.yaml'
+                }
             }
         }
+
         stage('Deploy MySQL Master-Slave via Helm') {
             steps {
-                sh "chmod +x k8s/helm-deploy.sh"
-                sh "k8s/helm-deploy.sh ${KUBE_CONFIG} ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
+                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh 'chmod +x k8s/helm-deploy.sh'
+                    sh "bash k8s/helm-deploy.sh \$KUBECONFIG ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
+                }
             }
         }
+
         stage('Verify') {
             steps {
-                sh "kubectl --kubeconfig=${KUBE_CONFIG} -n ${NAMESPACE} get pods,svc"
+                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh "kubectl -n ${NAMESPACE} get pods,svc"
+                }
             }
         }
     }
