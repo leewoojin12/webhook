@@ -7,11 +7,10 @@ pipeline {
     }
 
     environment {
-        KUBE_CONFIG = credentials('DOCKER_HUB')
-        HELM_HOME   = "${WORKSPACE}/.helm"
-        NAMESPACE   = 'db-replication'
-        RELEASE     = 'mysql-replica'
-        CHART       = 'bitnami/mysql'
+        HELM_HOME = "${WORKSPACE}/.helm"
+        NAMESPACE = 'db-replication'
+        RELEASE   = 'mysql-replica'
+        CHART     = 'bitnami/mysql'
     }
 
     stages {
@@ -21,17 +20,25 @@ pipeline {
 
         stage('Create Namespace') {
             steps {
-                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
-                    sh 'kubectl apply -f k8s/namespace.yaml'
+                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh '''
+                      echo "$KUBECONFIG" > kubeconfig
+                      export KUBECONFIG=$(pwd)/kubeconfig
+                      kubectl apply -f k8s/namespace.yaml
+                    '''
                 }
             }
         }
 
-        stage('Deploy MySQL Master-Slave via Helm') {
+        stage('Deploy MySQL Master‑Slave') {
             steps {
-                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
-                    sh 'chmod +x k8s/helm-deploy.sh'
-                    sh "bash k8s/helm-deploy.sh \$KUBECONFIG ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
+                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh '''
+                      echo "$KUBECONFIG" > kubeconfig
+                      export KUBECONFIG=$(pwd)/kubeconfig
+                      chmod +x k8s/helm-deploy.sh
+                      bash k8s/helm-deploy.sh $KUBECONFIG ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml
+                    '''
                 }
             }
         }
@@ -39,7 +46,11 @@ pipeline {
         stage('Verify') {
             steps {
                 withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
-                    sh 'echo "$KUBECONFIG" > kubeconfig && export KUBECONFIG=kubeconfig && kubectl -n ${NAMESPACE} get pods,svc'
+                    sh '''
+                      echo "$KUBECONFIG" > kubeconfig
+                      export KUBECONFIG=$(pwd)/kubeconfig
+                      kubectl -n ${NAMESPACE} get pods,svc
+                    '''
                 }
             }
         }
