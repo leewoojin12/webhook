@@ -2,6 +2,7 @@ pipeline {
     agent {
         docker {
             image 'lachlanevenson/k8s-helm:latest'
+            args '--entrypoint=""'
         }
     }
     environment {
@@ -13,6 +14,7 @@ pipeline {
         stage('Checkout') {
             steps { checkout scm }
         }
+
         stage('Create Namespace') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
@@ -25,17 +27,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
-                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
+                    writeFile file: 'kubeconfig.yaml', text: KUBECONFIG_CONTENT
                     sh 'chmod +x k8s/helm-deploy.sh'
-                    sh "bash k8s/helm-deploy.sh kubeconfig ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
+                    sh "bash k8s/helm-deploy.sh kubeconfig.yaml ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
                 }
             }
         }
+
         stage('Verify') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
-                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
-                    sh "kubectl --kubeconfig=kubeconfig -n ${NAMESPACE} get pods,svc"
+                    writeFile file: 'kubeconfig.yaml', text: KUBECONFIG_CONTENT
+                    sh "kubectl --kubeconfig=kubeconfig.yaml -n ${NAMESPACE} get pods,svc"
                 }
             }
         }
