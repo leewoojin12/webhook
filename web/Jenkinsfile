@@ -38,8 +38,8 @@ pipeline {
 
         stage('Verify') {
             steps {
-                withCredentials([string(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
-                    sh 'echo "$KUBECONFIG" > kubeconfig && export KUBECONFIG=kubeconfig && kubectl apply -f k8s/namespace.yaml'
+                withCredentials([file(credentialsId: 'DOCKER_HUB', variable: 'KUBECONFIG')]) {
+                    sh "kubectl -n ${NAMESPACE} get pods,svc"
                 }
             }
         }
