@@ -2,49 +2,47 @@ pipeline {
     agent {
         docker {
             image 'lachlanevenson/k8s-helm:latest'
-            args '-v $HOME/.kube:/root/.kube'
+            args '-v $WORKSPACE/kubeconfig:/root/.kube/config'
         }
     }
+
     environment {
         NAMESPACE = 'db-replication'
         RELEASE   = 'mysql-replica'
         CHART     = 'bitnami/mysql'
     }
+
     stages {
         stage('Checkout') {
-            steps { checkout scm }
+            steps {
+                checkout scm
+            }
         }
+
         stage('Create Namespace') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
-                    sh '''
-                      echo "$KUBECONFIG" > kubeconfig
-                      export KUBECONFIG=$(pwd)/kubeconfig
-                      kubectl apply -f k8s/namespace.yaml
-                    '''
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
+                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
+                    sh 'kubectl apply -f k8s/namespace.yaml'
                 }
             }
         }
+
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
-                    sh '''
-                      echo "$KUBECONFIG" > kubeconfig
-                      export KUBECONFIG=$(pwd)/kubeconfig
-                      chmod +x k8s/helm-deploy.sh
-                      bash k8s/helm-deploy.sh $KUBECONFIG ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml
-                    '''
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
+                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
+                    sh 'chmod +x k8s/helm-deploy.sh'
+                    sh "bash k8s/helm-deploy.sh kubeconfig ${NAMESPACE} ${RELEASE} ${CHART} k8s/mysql-values.yaml"
                 }
             }
         }
+
         stage('Verify') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG')]) {
-                    sh '''
-                      echo "$KUBECONFIG" > kubeconfig
-                      export KUBECONFIG=$(pwd)/kubeconfig
-                      kubectl -n ${NAMESPACE} get pods,svc
-                    '''
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
+                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
+                    sh "kubectl -n ${NAMESPACE} get pods,svc"
                 }
             }
         }
