@@ -16,11 +16,12 @@ pipeline {
         stage('Create Namespace') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
-                    writeFile file: 'kubeconfig', text: KUBECONFIG_CONTENT
-                    sh 'kubectl --kubeconfig=kubeconfig apply -f k8s/namespace.yaml'
+                    writeFile file: 'kubeconfig.yaml', text: KUBECONFIG_CONTENT
+                    sh 'kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/namespace.yaml'
                 }
             }
         }
+
         stage('Deploy') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', usernameVariable: 'DUMMY', passwordVariable: 'KUBECONFIG_CONTENT')]) {
