@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        KUBE_CONFIG = credentials('kubeconfig-secret-id')
+        KUBE_CONFIG = credentials('leewoojin12')
         HELM_HOME = "${WORKSPACE}/.helm"
         NAMESPACE = 'db-replication'
         RELEASE = 'mysql-replica'
