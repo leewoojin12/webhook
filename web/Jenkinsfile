@@ -1,8 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'lachlanevenson/k8s-helm:latest'
-            args '--entrypoint=""'
+            image 'dtzar/helm-kubectl:latest'
         }
     }
     environment {
